@@ -1,7 +1,9 @@
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
-from constants import MACROBLOCK_SIZE, BLOCK_Y_SIZE, RAYON, INCREMENT
+from constants import MACROBLOCK_SIZE, BLOCK_Y_SIZE, RAYON, INCREMENT, RESULT_FILE_PATH
+from math import sqrt
+import seaborn as sns
 
 
 def BGR2Y(frame):
@@ -107,3 +109,34 @@ def get_length_macroblocks_bits(macroblocks, frame):
     len_macroblocks_bits_without_h_w_r_i = len_macroblocks_bits + (len(macroblocks) * (8+32*3+1))
 
     return len_macroblocks_bits, len_macroblocks_bits_without_h_w_r_i, len_original
+
+
+def plot_heat_map(macroblocks, frame, title):
+    height = int(frame.shape[0]/MACROBLOCK_SIZE)
+    width = int(frame.shape[1]/MACROBLOCK_SIZE)
+
+    heat = np.zeros((height, width))
+
+    for i in range(0, len(macroblocks)):
+        macroblock = macroblocks[i]
+        vect_x = macroblock["VECT"][0]
+        vect_y = macroblock["VECT"][1]
+        norm = sqrt(vect_x**2 + vect_y**2)
+        x = int(macroblock["ADDR"][0]/MACROBLOCK_SIZE)
+        y = int(macroblock["ADDR"][1]/MACROBLOCK_SIZE)
+        heat[x, y] = norm
+
+    ax = sns.heatmap(heat, linewidth=0.1)
+    plt.title(title)
+    plt.show()
+    return ax
+
+
+def save_results(results):
+    f = open(RESULT_FILE_PATH, "a")
+    for i in range(0, len(results)):
+        result = results[i]
+        f.write(
+            result[0] + " R=2;" + str(result[1]) + ";" + str(result[2]) + ";" + str(result[3]) + ";" + str(result[4]) + "\n"
+        )
+    f.close()

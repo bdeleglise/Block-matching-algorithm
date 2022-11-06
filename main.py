@@ -7,10 +7,9 @@ import numpy as np
 import sys
 import time
 
-from constants import SEQUENCE_LEN
+from constants import SEQUENCE_LEN, PLOT_HEAT_MAP
 
 np.set_printoptions(threshold=sys.maxsize)
-
 
 def main():
     if len(sys.argv) != 2:
@@ -27,6 +26,7 @@ def main():
         print('Already exist')
 
     macroblocks_list = []
+    results = []
 
     # encode
     print("Creates macroblocks ...")
@@ -38,7 +38,7 @@ def main():
         #Debug
         #if i == 2:
         #    break
-
+        result = []
         img = sys.argv[1] + '/frame%d.jpg' % i
         print("Opening : ", img)
         current_trame = cv2.imread(img, cv2.IMREAD_UNCHANGED)
@@ -66,11 +66,19 @@ def main():
         print('Original bits                    : ', len_original_frame)
         print('Time                             : ', end_macroblock - start_macroblock)
 
+        if PLOT_HEAT_MAP == True and type == "P":
+            utils.plot_heat_map(macroblocks, current_trame, img)
+
         tot_macroblocks_bits += len_macroblocks_bits_binaire
         tot_macroblocks_bits_without_data += len_macroblocks_bits_binaire_without_date
         tot_original_len += len_original_frame
         time_encode += (end_macroblock - start_macroblock)
+        result.append(img)
+        result.append(1 - len_macroblocks_bits_binaire/len_original_frame)
+        result.append(1 - len_macroblocks_bits_binaire_without_date/len_original_frame)
+        result.append(end_macroblock - start_macroblock)
 
+        results.append(result)
         macroblocks_list.append(macroblocks)
         type = "P"
         previous_trame = current_trame
@@ -99,12 +107,15 @@ def main():
 
         print('Time                             : ', end_to_img - start_to_img)
         time_decode += (end_to_img - start_to_img)
+
+        results[i].append(end_to_img - start_to_img)
         previous_trame = current_trame
-    end_decode = time.time()
     print("Time decode  : ",time_decode)
+    utils.save_results(results)
 
 
 def test():
+    """
     # read image
     trame0 = cv2.imread('./sequence_video_0/frame0.jpg', cv2.IMREAD_UNCHANGED)
 
@@ -141,6 +152,8 @@ def test():
     img_decode_p = blockmatching.macroblocks_to_trame(macroblocks_p, trame0)
     utils.show_gray_frame(img_decode_p)
 
+    utils.plot_heat_map(macroblocks_p, trame0)"""
+
     """
     print("Test rezise ::: ")
     test1 = np.array([[1,1,5,6], [3,1,5,6], [1,2,5,6], [6,1,5,6]], dtype='uint8')
@@ -164,6 +177,7 @@ def test():
     print(test1)
     
     """
+
 
 
 # Press the green button in the gutter to run the script.
