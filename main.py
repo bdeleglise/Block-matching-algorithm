@@ -9,9 +9,17 @@ import time
 
 from constants import SEQUENCE_LEN, PLOT_HEAT_MAP
 
+# For debugging
 np.set_printoptions(threshold=sys.maxsize)
 
+
+"""
+To convert a video sequence in the terminal and recreate frames :
+python main.py DIR_PATH
+DIR_PATH is a string to the directory of the video sequence of 15frames
+"""
 def main():
+    # Test argument
     if len(sys.argv) != 2:
         print('Error args')
         exit(1)
@@ -90,12 +98,12 @@ def main():
     print('Original bits                    : ', tot_original_len)
     print("Time encode                      : ", time_encode)
 
-    #decode
+    # decode
     print("Decodes macroblocks...")
     time_decode = 0
     previous_trame = None
     for i in range(0, SEQUENCE_LEN):
-        #Debug
+        # Debug
         #if i == 2:
         #    break
 
@@ -111,9 +119,15 @@ def main():
         results[i].append(end_to_img - start_to_img)
         previous_trame = current_trame
     print("Time decode  : ",time_decode)
+
+    # All results are save in a .csv file
     utils.save_results(results)
 
 
+
+"""
+This function allows to do individual test 
+"""
 def test():
     """
     # read image
@@ -179,9 +193,5 @@ def test():
     """
 
 
-
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     main()
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/

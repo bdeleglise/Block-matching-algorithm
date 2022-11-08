@@ -3,6 +3,14 @@ import cv2 as cv
 import numpy as np
 import utils
 
+
+"""
+Allows to compute the motion estimation of all blocks of the current frame P with blocks of the previous one
+Implements an Exhaustive Brut Force Search algorithm depending on the Increment, the Ray, threshold for macroblock and 
+threshold for block Y
+The error is calculated by a quadratic error
+Inspired from the Exhaustive Search algorithm : https://github.com/javiribera/frame-block-matching
+"""
 def block_mactching(current_trame, previous_trame, blocks, blocks_coord):
     height = current_trame.shape[0]
     width = current_trame.shape[1]
@@ -12,30 +20,18 @@ def block_mactching(current_trame, previous_trame, blocks, blocks_coord):
 
     # fois 2 pour un pas de 1/2 pixels
     if INCREMENT == 2:
+        # Permet de représenter les 1/2 pixels
         previous_trame = cv.resize(previous_trame, dsize=(width * INCREMENT - 1, height * INCREMENT - 1))
         block_len += MACROBLOCK_SIZE - 1
 
     if INCREMENT > 2:
         raise ValueError('pixel accuracy should be 1 or 2. Got %s instead.' % INCREMENT)
 
-    # print(previous_trame.shape)
-    # utils.show_gray_frame(previous_trame)
-    # previous_trame_rezise = previous_trame
-    # previous_trame = np.lib.pad(previous_trame, ((0, MACROBLOCK_SIZE * INCREMENT - 1), (0, MACROBLOCK_SIZE * INCREMENT - 1)), 'constant', constant_values=(0))
-
-    # if INCREMENT == 1:
-    #    assert np.array_equal(previous_trame_rezise, previous_trame[0:height * INCREMENT, 0:width * INCREMENT])
-    # else:
-    #    assert np.array_equal(previous_trame_rezise, previous_trame[0:height * INCREMENT - 1, 0:width * INCREMENT - 1])
-
-    # print(previous_trame.shape)
-    # utils.show_gray_frame(previous_trame[0:height * INCREMENT - 1, 0:width * INCREMENT - 1])
-
     for pos in range(0, len(blocks)):
         current_block = blocks[pos]
         current_block_coord = blocks_coord[pos]
 
-        # minimum norm of the SSD norm found so far
+        # minimum norm of found so far
         sum_square_diff_min = np.infty
         matching_block = np.empty((MACROBLOCK_SIZE, MACROBLOCK_SIZE), dtype=np.uint8)
         vect_x = 0
@@ -43,12 +39,14 @@ def block_mactching(current_trame, previous_trame, blocks, blocks_coord):
 
         # print(sum_square_diff_min)
         # print(current_block_coord)
+
+        # determines the search space
         min_h = (current_block_coord[0] - RAYON) * INCREMENT
         if min_h < 0:
             min_h = 0
         max_h = (current_block_coord[0] + RAYON) * INCREMENT
         if max_h + block_len > (height * INCREMENT):
-            max_h = height * INCREMENT - block_len  ## c'es louche
+            max_h = height * INCREMENT - block_len
             if max_h < current_block_coord[0]:
                 max_h = current_block_coord[0] * INCREMENT + 1
         min_w = (current_block_coord[1] - RAYON) * INCREMENT
@@ -62,6 +60,7 @@ def block_mactching(current_trame, previous_trame, blocks, blocks_coord):
 
         # print(min_h, max_h, min_w, max_w)
 
+        # determines in the search space the best matching block
         for i in range(min_h, max_h):
             for j in range(min_w, max_w):
                 previous_block = previous_trame[i:i+block_len, j:j+block_len]
@@ -72,6 +71,7 @@ def block_mactching(current_trame, previous_trame, blocks, blocks_coord):
 
                 # print(((current_block-previous_block)**2).sum())
 
+                # computes the squared error
                 sum_square_diff = ((current_block-previous_block)**2).sum()
 
                 if sum_square_diff < sum_square_diff_min:
@@ -83,9 +83,11 @@ def block_mactching(current_trame, previous_trame, blocks, blocks_coord):
                     if sum_square_diff_min <= MACROBLOCK_THRESHOLD:
                         break
 
-        #set macroblocks
+        # set associate macroblock P
         cbp = 0b0
 
+        # if the error of a block Y is < Threshold we don't encode it
+        # Othewise we encode the error with the matching_block
         b0 = current_block[0:0+BLOCK_Y_SIZE, 0:0+BLOCK_Y_SIZE] - matching_block[0:0+BLOCK_Y_SIZE, 0:0+BLOCK_Y_SIZE]
         if (b0 ** 2).sum() <= BLOCK_Y_THRESHOLD:
             b0 = None
@@ -114,6 +116,7 @@ def block_mactching(current_trame, previous_trame, blocks, blocks_coord):
         else:
             cbp = cbp | 0b1000
 
+        # Resulting macroblock with motion vector and encoded Y blocks
         macroblock = {
             "ADDR": current_block_coord,
             "TYPE": "P",
@@ -134,6 +137,9 @@ def block_mactching(current_trame, previous_trame, blocks, blocks_coord):
     return macroblocks, nbYNoCode
 
 
+"""
+Allows to rebuild a frame I from a list of macroblocks of type I
+"""
 def macroblocks_to_trame_i(macroblocks, trame_height, trame_width):
     trame = np.zeros((trame_height, trame_width), dtype=np.uint8)
 
@@ -151,6 +157,10 @@ def macroblocks_to_trame_i(macroblocks, trame_height, trame_width):
     return trame
 
 
+"""
+Allows to rebuild a frame P from a list of macroblocks of type P, the previous decoded frame 
+and the motion vector of each block to find the previous matching block
+"""
 def macroblocks_to_trame_p(macroblocks, trame_height, trame_width, previous_trame):
     trame = np.zeros((trame_height, trame_width), dtype=np.uint8)
 
@@ -163,16 +173,6 @@ def macroblocks_to_trame_p(macroblocks, trame_height, trame_width, previous_tram
 
     if INCREMENT > 2:
         raise ValueError('pixel accuracy should be 1 or 2. Got %s instead.' % INCREMENT)
-
-    # print(previous_trame.shape)
-    #previous_trame_rezise = previous_trame
-    #previous_trame = np.lib.pad(previous_trame,
-    #                            ((0, MACROBLOCK_SIZE * INCREMENT - 1), (0, MACROBLOCK_SIZE * INCREMENT - 1)),
-    #                            'constant', constant_values=(0))
-    #if INCREMENT == 1:
-    #    assert np.array_equal(previous_trame_rezise, previous_trame[0:trame_height * INCREMENT, 0:trame_width * INCREMENT])
-    #else:
-    #    assert np.array_equal(previous_trame_rezise, previous_trame[0:trame_height * INCREMENT - 1, 0:trame_width * INCREMENT - 1])
 
     for i in range(0, len(macroblocks)):
         macroblock = macroblocks[i]
@@ -214,6 +214,9 @@ def macroblocks_to_trame_p(macroblocks, trame_height, trame_width, previous_tram
     return trame
 
 
+"""
+Allows to rebuild a frame from a list of macroblocks and for a trame P with the previous frame
+"""
 def macroblocks_to_trame(macroblocks, previous_trame = None):
     last_block = macroblocks[len(macroblocks) - 1]
     trame_height = last_block["ADDR"][0] + MACROBLOCK_SIZE

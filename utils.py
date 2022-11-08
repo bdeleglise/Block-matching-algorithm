@@ -6,16 +6,27 @@ from math import sqrt
 import seaborn as sns
 
 
+"""
+Allows to extarct the Y component of a frame
+"""
 def BGR2Y(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     return gray
 
+
+"""
+Allows to display a frame with the component Y only
+"""
 def show_gray_frame(frame):
     plt.imshow(frame, cmap='gray')
     plt.show()
 
+
+"""
+Allows to divide the frame into block of 16x16 in order to create macro-blocks
+We also extract the coord of the first pixel in the block to locate it in the frame
+"""
 def get_16x16_blocks(frame):
-    # height, width, number of channels in image
     height = frame.shape[0]
     width = frame.shape[1]
 
@@ -23,19 +34,23 @@ def get_16x16_blocks(frame):
     # print('Image Width        : ', width)
 
     blocks = []
-    blocks_coord = [] #coord of the first pixel in the block
+    # coord of the first pixel in the block
+    blocks_coord = []
 
     for i in range(0, height, MACROBLOCK_SIZE):
         for j in range(0, width, MACROBLOCK_SIZE):
             blocks.append(frame[i:i+MACROBLOCK_SIZE, j:j+MACROBLOCK_SIZE])
             blocks_coord.append([i, j])
 
-    # print('Block 0        : ', blocks[0])
+    # print('Block 0        : ', blocks[1])
     # print('NB Blocks      : ', len(blocks))
 
     return blocks, blocks_coord
 
 
+"""
+Allows to create default macroblocks from blocks specially for frame I
+"""
 def init_macroblocks(blocks, blocks_coord, type):
     macroblocks = []
 
@@ -59,6 +74,9 @@ def init_macroblocks(blocks, blocks_coord, type):
     return macroblocks
 
 
+"""
+Allows to compute the length in bits of the list of macroblocks
+"""
 def get_length_macroblocks_bits(macroblocks, frame):
     height = frame.shape[0]
     width = frame.shape[1]
@@ -111,6 +129,10 @@ def get_length_macroblocks_bits(macroblocks, frame):
     return len_macroblocks_bits, len_macroblocks_bits_without_h_w_r_i, len_original
 
 
+"""
+Allows to compute mouvement vectors norm and to display them in a form of heat map
+Inspired from : https://www.delftstack.com/fr/howto/matplotlib/how-to-plot-a-2d-heatmap-with-matplotlib/
+"""
 def plot_heat_map(macroblocks, frame, title):
     height = int(frame.shape[0]/MACROBLOCK_SIZE)
     width = int(frame.shape[1]/MACROBLOCK_SIZE)
@@ -132,11 +154,14 @@ def plot_heat_map(macroblocks, frame, title):
     return ax
 
 
+"""
+Allows to save results of the execution in a .csv file
+"""
 def save_results(results):
     f = open(RESULT_FILE_PATH, "a")
     for i in range(0, len(results)):
         result = results[i]
         f.write(
-            result[0] + " R=2;" + str(result[1]) + ";" + str(result[2]) + ";" + str(result[3]) + ";" + str(result[4]) + "\n"
+            result[0] + ";" + str(result[1]) + ";" + str(result[2]) + ";" + str(result[3]) + ";" + str(result[4]) + "\n"
         )
     f.close()

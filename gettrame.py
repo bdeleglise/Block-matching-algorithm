@@ -1,13 +1,21 @@
 import sys
 import cv2
 
+
+"""
+To extract a video sequence from a vidoe and saves it as a list of 15 frames : 
+python gettrame.py VIDEO_PATH START_INDEX SAVE_DIRECTORY_PATH
+VIDEO_PATH the path to the video 
+START_INDEX the index of the first frame
+SAVE_DIRECTORY_PATH the path to the directory to save the list of 15 frames
+"""
 def main():
     if len(sys.argv) != 4:
         print('Error args')
         exit(1)
 
     try:
-        #Inspired from https://stackoverflow.com/questions/33311153/python-extracting-and-saving-video-frames
+        # Inspired from https://stackoverflow.com/questions/33311153/python-extracting-and-saving-video-frames
         vidcap = cv2.VideoCapture(sys.argv[1])
 
         length = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
